@@ -1,0 +1,189 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class QuizApp {
+    private JFrame frame;
+    private JPanel currentPanel;
+    private Timer timer;
+    private int timeRemaining = 60; // Time in seconds
+    private String[] questions = {"Question 1: Who invented Java Programming?", "Question 2:Which one of the following is not a Java feature?"};
+    private String[][] choices = {
+            {"A.Guido van Rossum", "B.James Gosling", "C.Dennis Ritchie", "D.Bjarne Stroustrup"},
+            {"A.Object-oriented", "B.Use of pointers", "C.Portable", "D.Dynamic and Extensible"}
+    };
+    private String[] answers = {"B", "B"};
+    private int currentQuestion = 0;
+    private int correctAnswers = 0;
+    private int wrongAnswers = 0;
+    private int score = 0;
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                new QuizApp().start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    public void start() {
+        frame = new JFrame("Quiz App");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400, 300);
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+
+        loginPanel();
+    }
+
+    private void loginPanel() {
+        currentPanel = new JPanel();
+        frame.setContentPane(currentPanel);
+
+        JLabel usernameLabel = new JLabel("Username:");
+        JTextField usernameField = new JTextField(20);
+        JLabel passwordLabel = new JLabel("Password:");
+        JPasswordField passwordField = new JPasswordField(20);
+        JButton loginButton = new JButton("Login");
+
+        loginButton.addActionListener(e -> {
+            // Implement authentication logic here
+            // For simplicity, we'll consider any non-empty username/password as a successful login
+            String username = usernameField.getText();
+            String password = new String(passwordField.getPassword());
+
+            if (!username.isEmpty() && !password.isEmpty()) {
+                profilePanel();
+            } else {
+                JOptionPane.showMessageDialog(frame, "Invalid credentials. Please try again.");
+            }
+        });
+
+        currentPanel.setLayout(new GridLayout(3, 2));
+        currentPanel.add(usernameLabel);
+        currentPanel.add(usernameField);
+        currentPanel.add(passwordLabel);
+        currentPanel.add(passwordField);
+        currentPanel.add(new JLabel()); // Empty label for spacing
+        currentPanel.add(loginButton);
+        frame.revalidate();
+    }
+
+    private void profilePanel() {
+        currentPanel = new JPanel(new GridBagLayout()); // Use GridBagLayout for precise alignment
+        frame.setContentPane(currentPanel);
+
+        JLabel profileLabel = new JLabel("Welcome to the Quiz App!");
+        JButton startQuizButton = new JButton("Start Quiz");
+        JButton logoutButton = new JButton("Logout");
+
+        startQuizButton.addActionListener(e -> quizPanel());
+        logoutButton.addActionListener(e -> loginPanel());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weighty = 1.0; // Add vertical space between components
+        gbc.insets = new Insets(10, 0, 10, 0); // Add top and bottom padding
+
+        currentPanel.add(profileLabel, gbc);
+
+        gbc.gridy++;
+        currentPanel.add(startQuizButton, gbc);
+
+        gbc.gridy++;
+        currentPanel.add(logoutButton, gbc);
+
+        frame.revalidate();
+    }
+
+    private void quizPanel() {
+        currentPanel = new JPanel();
+        frame.setContentPane(currentPanel);
+
+        JLabel questionLabel = new JLabel(questions[currentQuestion]);
+
+        ButtonGroup choiceGroup = new ButtonGroup();
+        JPanel choicesPanel = new JPanel(); // Create a panel for the answer choices
+        choicesPanel.setLayout(new GridLayout(choices[currentQuestion].length, 1));
+
+        for (int i = 0; i < choices[currentQuestion].length; i++) {
+            String choiceLetter = choices[currentQuestion][i].split("\\.")[0]; // Get the choice letter (e.g., "A")
+            JRadioButton choiceButton = new JRadioButton(choices[currentQuestion][i]);
+            choiceButton.setActionCommand(choiceLetter); // Set action command to the choice letter
+            choiceGroup.add(choiceButton);
+            choicesPanel.add(choiceButton);
+        }
+
+        JButton submitButton = new JButton("Submit");
+        JLabel timerLabel = new JLabel("Time Remaining: " + timeRemaining);
+
+        submitButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (choiceGroup.getSelection() != null) {
+                    String selectedAnswer = choiceGroup.getSelection().getActionCommand();
+                    String correctAnswer = answers[currentQuestion];
+
+                    if (selectedAnswer.equals(correctAnswer)) {
+                        correctAnswers++; // Increment correct answer count
+                        score++; // Increment score
+                    } else {
+                        wrongAnswers++; // Increment wrong answer count
+                    }
+
+                    currentQuestion++;
+                    if (currentQuestion < questions.length) {
+                        quizPanel();
+                    } else {
+                        // Quiz is finished, display the score
+                        displayScore();
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(frame, "Please select an answer.");
+                }
+            }
+        });
+
+        timer = new Timer(1000, new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                timeRemaining--;
+                timerLabel.setText("Time Remaining: " + timeRemaining);
+                if (timeRemaining == 0) {
+                    timer.stop();
+                    JOptionPane.showMessageDialog(frame, "Time's up!");
+                    // Auto-submit the current question
+                    submitButton.doClick();
+                }
+            }
+        });
+
+        timer.start();
+
+        currentPanel.setLayout(new GridLayout(5, 1));
+        currentPanel.add(questionLabel);
+        currentPanel.add(choicesPanel); // Add the choices panel
+        currentPanel.add(submitButton);
+        currentPanel.add(timerLabel);
+
+        frame.revalidate();
+    }
+
+    private void displayScore() {
+        currentPanel = new JPanel();
+        frame.setContentPane(currentPanel);
+
+        JLabel scoreLabel = new JLabel("<html>Quiz Finished!<br>Correct Answers: " + correctAnswers + "<br>Wrong Answers: " + wrongAnswers + "<br>Score: " + score + "</html>");
+        JButton returnButton = new JButton("Return to Profile");
+
+        returnButton.addActionListener(e -> profilePanel());
+
+        currentPanel.setLayout(new GridLayout(3, 1));
+        currentPanel.add(scoreLabel);
+        currentPanel.add(returnButton);
+
+        frame.revalidate();
+    }
+}
